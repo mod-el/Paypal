@@ -1,0 +1,8 @@
+{
+	"name": "Paypal",
+	"description": "Paypal integration",
+	"version": "0.0.2",
+	"dependencies": {
+		"Core": ">=2.8.3"
+	}
+}
