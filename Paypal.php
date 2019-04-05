@@ -85,8 +85,7 @@ abstract class Paypal extends Module
 
 	/**
 	 * @param string $tx
-	 * @return array
-	 * @throws \Model\Core\Exception
+	 * @return mixed
 	 */
 	public function returnData(string $tx)
 	{
@@ -146,12 +145,13 @@ abstract class Paypal extends Module
 
 			#######################################
 
-			switch ($this->verifyOrder($response['item_number'], $response['mc_gross'])) {
+			$checker = $this->getChecker();
+			switch ($checker->verifyOrder($response['item_number'], $response['mc_gross'])) {
 				case 1:
-					return $this->execute($response, 'pdt');
+					return $checker->execute($response, 'pdt');
 					break;
 				case 2:
-					return $this->alreadyExecuted($response, 'pdt');
+					return $checker->alreadyExecuted($response, 'pdt');
 					break;
 			}
 		} else {
@@ -161,9 +161,9 @@ abstract class Paypal extends Module
 
 	/**
 	 * @param array $ipn_data
-	 * @return array
+	 * @return bool
 	 */
-	public function ipn(array $ipn_data): array
+	public function ipn(array $ipn_data)
 	{
 		if ($this->test)
 			$url = 'https://www.sandbox.paypal.com/cgi-bin/webscr';
@@ -208,14 +208,25 @@ abstract class Paypal extends Module
 		if ($response['payment_status'] !== 'Completed')
 			$this->log("Pagamento non completato.");
 
-		switch ($this->verifyOrder($response['item_number'], $response['mc_gross'])) {
+		$checker = $this->getChecker();
+		switch ($checker->verifyOrder($response['item_number'], $response['mc_gross'])) {
 			case 1:
-				return $this->execute($response, 'ipn');
+				return $checker->execute($response, 'ipn');
 				break;
 			case 2:
-				return $this->alreadyExecuted($response, 'ipn');
+				return $checker->alreadyExecuted($response, 'ipn');
 				break;
 		}
+	}
+
+	/**
+	 * @return PaypalCheck
+	 */
+	private function getChecker(): PaypalCheck
+	{
+		require_once(INCLUDE_PATH . 'app/config/Paypal/PaypalCheck.php');
+		$checker = new PaypalCheck($this->model);
+		return $checker;
 	}
 
 	/**
