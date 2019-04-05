@@ -20,7 +20,7 @@ $config = [
 ';
 		});
 
-		if (!file_exists(INCLUDE_PATH . 'app/config/Paypal/PaypalCheck.php'))
+		if (!file_exists(INCLUDE_PATH . 'app/config/Paypal/PaypalCheck.php') or file_exists(INCLUDE_PATH . 'app/config/class.php'))
 			$this->makePaypalClassFile();
 	}
 
