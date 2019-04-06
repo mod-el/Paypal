@@ -2,7 +2,7 @@
 
 use Model\Core\Module;
 
-abstract class Paypal extends Module
+class Paypal extends Module
 {
 	/** @var array */
 	public $formData;
