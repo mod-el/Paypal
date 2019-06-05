@@ -20,22 +20,22 @@ $config = [
 ';
 		});
 
-		if (!file_exists(INCLUDE_PATH . 'app/config/Paypal/PaypalCheck.php') or file_exists(INCLUDE_PATH . 'app/config/Paypal/class.php'))
+		if (!file_exists(INCLUDE_PATH . 'app' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'Paypal' . DIRECTORY_SEPARATOR . 'PaypalCheck.php') or file_exists(INCLUDE_PATH . 'app' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'Paypal' . DIRECTORY_SEPARATOR . 'class.php'))
 			$this->makePaypalClassFile();
 	}
 
 	private function makePaypalClassFile()
 	{
-		if (file_exists(INCLUDE_PATH . 'app/config/Paypal/class.php')) { // Transition from old version
-			$code = file_get_contents(INCLUDE_PATH . 'app/config/Paypal/class.php');
+		if (file_exists(INCLUDE_PATH . 'app' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'Paypal' . DIRECTORY_SEPARATOR . 'class.php')) { // Transition from old version
+			$code = file_get_contents(INCLUDE_PATH . 'app' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'Paypal' . DIRECTORY_SEPARATOR . 'class.php');
 			$code = str_replace('class Paypal extends PaypalBase', 'class PaypalCheck extends PaypalCheckBase', $code);
 			$code = preg_replace('/function verifyOrder.+/', 'function verifyOrder(string $id, float $paid): int', $code);
 			$code = preg_replace('/function execute.+/', 'function execute(array $response, string $type)', $code);
 			$code = preg_replace('/function alreadyExecuted.+/', 'function alreadyExecuted(array $response, string $type)', $code);
-			file_put_contents(INCLUDE_PATH . 'app/config/Paypal/PaypalCheck.php', $code);
-			unlink(INCLUDE_PATH . 'app/config/Paypal/class.php');
+			file_put_contents(INCLUDE_PATH . 'app' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'Paypal' . DIRECTORY_SEPARATOR . 'PaypalCheck.php', $code);
+			unlink(INCLUDE_PATH . 'app' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'Paypal' . DIRECTORY_SEPARATOR . 'class.php');
 		} else {
-			copy(INCLUDE_PATH . 'model/Paypal/PaypalCheckSample.php', INCLUDE_PATH . 'app/config/Paypal/PaypalCheck.php');
+			copy(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Paypal' . DIRECTORY_SEPARATOR . 'PaypalCheckSample.php', INCLUDE_PATH . 'app' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'Paypal' . DIRECTORY_SEPARATOR . 'PaypalCheck.php');
 		}
 	}
 
