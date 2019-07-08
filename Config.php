@@ -26,6 +26,9 @@ $config = [
 
 	private function makePaypalClassFile()
 	{
+		if (!is_dir(INCLUDE_PATH . 'app' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'Paypal'))
+			mkdir(INCLUDE_PATH . 'app' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'Paypal', 0777, true);
+
 		if (file_exists(INCLUDE_PATH . 'app' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'Paypal' . DIRECTORY_SEPARATOR . 'class.php')) { // Transition from old version
 			$code = file_get_contents(INCLUDE_PATH . 'app' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'Paypal' . DIRECTORY_SEPARATOR . 'class.php');
 			$code = str_replace('class Paypal extends PaypalBase', 'class PaypalCheck extends PaypalCheckBase', $code);
