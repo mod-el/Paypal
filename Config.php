@@ -47,9 +47,11 @@ $config = [
 	 */
 	public function getRules(): array
 	{
+		$config = $this->retrieveConfig();
+
 		return [
 			'rules' => [
-				'paypal' => 'paypal',
+				'paypal' => $config['path'],
 			],
 			'controllers' => [
 				'Paypal',
