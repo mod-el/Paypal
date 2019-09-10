@@ -45,7 +45,7 @@ class Paypal extends Module
 			$this->formData[$k] = $v;
 
 		if (!isset($this->formData['cancel_return']))
-			$this->formData['cancel_return'] = 'http://' . $_SERVER['HTTP_HOST'] . PATH . $this->path . '/return';
+			$this->formData['cancel_return'] = BASE_HOST . PATH . $this->path . '/return';
 	}
 
 	/**
