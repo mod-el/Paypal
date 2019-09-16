@@ -51,7 +51,7 @@ $config = [
 
 		return [
 			'rules' => [
-				'paypal' => $config['path'],
+				'paypal' => $config['path'] ?? '',
 			],
 			'controllers' => [
 				'Paypal',
