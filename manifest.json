@@ -1,8 +1,9 @@
 {
 	"name": "Paypal",
-	"description": "Paypal integration",
-	"version": "0.0.2",
+	"description": "Paypal payment gateway",
+	"version": "1.0.0",
 	"dependencies": {
-		"Core": ">=2.8.3"
+		"Core": ">=2.10.0",
+		"Payments": ">=1.0.0"
 	}
 }

@@ -1,112 +1,78 @@
 <?php namespace Model\Paypal;
 
 use Model\Core\Module;
+use Model\Payments\PaymentInterface;
+use Model\Payments\PaymentsOrderInterface;
 
-class Paypal extends Module
+class Paypal extends Module implements PaymentInterface
 {
-	/** @var array */
-	public $formData;
-	/** @var */
-	public $returnTemplate = false;
-	/** @var string */
-	protected $email;
-	/** @var string */
-	protected $path;
-	/** @var string */
-	protected $token;
-
-	/** @var bool */
-	protected $test = false;
-
-	/** @param array $data */
-	public function init(array $data)
+	public function beginPayment(PaymentsOrderInterface $order, array $options = [])
 	{
-		require(INCLUDE_PATH . 'app/config/Paypal/config.php');
+		$config = $this->retrieveConfig();
 
-		$this->formData = [
+		if ($config['test'])
+			$url = 'https://www.sandbox.paypal.com/it/cgi-bin/webscr';
+		else
+			$url = 'https://www.paypal.com/it/cgi-bin/webscr';
+
+		$orderShipping = $order->getShipping();
+		$orderPrice = $order->getPrice() - $orderShipping;
+
+		$orderData = array_merge([
 			'cmd' => '_xclick',
 			'business' => $config['email'],
-			'item_name' => '',
-			'item_number' => '',
+			'item_name' => $order->getOrderDescription(),
+			'item_number' => $order['id'],
 			'quantity' => false,
 			'currency_code' => 'EUR',
-			'amount' => 0,
-			'shipping' => false,
-			'no_shipping' => 1,
+			'amount' => $orderPrice,
+			'shipping' => $orderShipping ?: false,
+			'no_shipping' => $orderShipping ? false : 1,
 			'no_note' => 1,
-		];
-		$this->email = $config['email'];
-		$this->path = $config['path'];
-		$this->test = $config['test'];
-		$this->token = $config['token'] ?? false;
-		$this->returnTemplate = $config['template'] ?? false;
+		], $options);
 
-		foreach ($data as $k => $v)
-			$this->formData[$k] = $v;
-
-		if (!isset($this->formData['cancel_return']))
-			$this->formData['cancel_return'] = BASE_HOST . PATH . $this->path . '/return';
-	}
-
-	/**
-	 * @return array
-	 */
-	public function getFormData(): array
-	{
-		$response = [];
-
-		foreach ($this->formData as $k => $v) {
+		echo '<form action="' . $url . '" name="PayPalForm" method="post">';
+		foreach ($orderData as $k => $v) {
 			if ($v === false)
 				continue;
 			if ($k === 'amount')
 				$v = round($v, 2);
 
-			$response[$k] = $v;
-		}
-
-		return $response;
-	}
-
-	/**
-	 *
-	 */
-	public function buy()
-	{
-		if ($this->test) $url = 'https://www.sandbox.paypal.com/it/cgi-bin/webscr';
-		else $url = 'https://www.paypal.com/it/cgi-bin/webscr';
-		echo '<form action="' . $url . '" name="PayPalForm" method="post">';
-
-		$formData = $this->getFormData();
-		foreach ($formData as $k => $v)
 			echo '<input type="hidden" name="' . $k . '" value="' . htmlentities($v, ENT_QUOTES, 'utf-8') . '" />';
-
+		}
 		echo '<noscript><input type="image" src="http://www.paypal.com/it_IT/i/btn/x-click-but01.gif" name="submit" alt="Effettua i tuoi pagamenti con PayPal. &Egrave; un sistema rapido, gratuito e sicuro." /><br /><br /></noscript>';
 		echo '</form>';
 		echo '<script type="text/javascript">document.PayPalForm.submit();</script>';
 		die();
 	}
 
-	/**
-	 * @param string $message
-	 * @param bool $die
-	 */
-	private function log(string $message, bool $die = true)
+	public function handleRequest(): array
 	{
-		$f = fopen(INCLUDE_PATH . 'model/Paypal/data/logs.php', 'a+');
-		fwrite($f, $message . "\n-----------------------------\n");
-		fclose($f);
-		if ($die)
-			die('Error.');
+		switch ($this->model->getRequest(2)) {
+			case 'return':
+				if (!isset($_GET['tx']))
+					throw new \Exception('Wrong parameters');
+
+				return $this->returnData($_GET['tx']);
+			case 'ipn':
+				return $this->ipn($_POST);
+			default:
+				throw new \Exception('Unknown request type');
+		}
 	}
 
 	/**
 	 * @param string $tx
 	 * @return mixed
 	 */
-	public function returnData(string $tx)
+	private function returnData(string $tx): array
 	{
-		if ($this->test) $url = 'https://www.sandbox.paypal.com/it/cgi-bin/webscr';
-		else $url = 'https://www.paypal.com/it/cgi-bin/webscr';
+		$config = $this->retrieveConfig();
+
+		if ($config['test'])
+			$url = 'https://www.sandbox.paypal.com/it/cgi-bin/webscr';
+		else
+			$url = 'https://www.paypal.com/it/cgi-bin/webscr';
 
 		// Init cURL
 		$request = curl_init();
@@ -119,7 +85,7 @@ class Paypal extends Module
 				[
 					'cmd' => '_notify-synch',
 					'tx' => $tx,
-					'at' => $this->token,
+					'at' => $config['token'],
 				]),
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_HEADER => false,
@@ -149,9 +115,8 @@ class Paypal extends Module
 
 			// Fix character encoding if different from UTF-8 (in my case)
 			if (isset($response['charset']) and strtoupper($response['charset']) !== 'UTF-8') {
-				foreach ($response as $key => &$value) {
+				foreach ($response as $key => &$value)
 					$value = mb_convert_encoding($value, 'UTF-8', $response['charset']);
-				}
 				$response['charset_original'] = $response['charset'];
 				$response['charset'] = 'UTF-8';
 			}
@@ -161,15 +126,13 @@ class Paypal extends Module
 
 			#######################################
 
-			$checker = $this->getChecker();
-			switch ($checker->verifyOrder($response['item_number'], $response['mc_gross'])) {
-				case 1:
-					return $checker->execute($response, 'pdt');
-					break;
-				case 2:
-					return $checker->alreadyExecuted($response, 'pdt');
-					break;
-			}
+			return [
+				'id' => $response['item_number'],
+				'price' => $response['mc_gross'],
+				'meta' => [
+					'type' => 'pdt',
+				],
+			];
 		} else {
 			$this->model->error('Errore durante la verifica del pagamento. Contattare l\'amministrazione.<br />Status: <b>' . $status . '</b><br />Risposta dal server:<br /><br />' . print_r($response, true));
 		}
@@ -177,14 +140,16 @@ class Paypal extends Module
 
 	/**
 	 * @param array $ipn_data
-	 * @return bool
+	 * @return array
 	 */
-	public function ipn(array $ipn_data)
+	private function ipn(array $ipn_data): array
 	{
-		if ($this->test)
-			$url = 'https://www.sandbox.paypal.com/cgi-bin/webscr';
+		$config = $this->retrieveConfig();
+
+		if ($config['test'])
+			$url = 'https://www.sandbox.paypal.com/it/cgi-bin/webscr';
 		else
-			$url = 'https://www.paypal.com/cgi-bin/webscr';
+			$url = 'https://www.paypal.com/it/cgi-bin/webscr';
 
 		// Set up request to PayPal
 		$request = curl_init();
@@ -195,7 +160,7 @@ class Paypal extends Module
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_HEADER => false,
 			CURLOPT_SSL_VERIFYPEER => true,
-			CURLOPT_CAINFO => INCLUDE_PATH . 'model' . PATH_SEPARATOR . 'Paypal' . PATH_SEPARATOR . 'files' . PATH_SEPARATOR . 'cacert.pem',
+			CURLOPT_CAINFO => INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Paypal' . DIRECTORY_SEPARATOR . 'files' . DIRECTORY_SEPARATOR . 'cacert.pem',
 		]);
 
 		// Execute request and get response and status code
@@ -206,13 +171,12 @@ class Paypal extends Module
 		curl_close($request);
 
 		if ($status != 200 or $response !== 'VERIFIED')
-			$this->log("Errore: " . $status . "\nRisposta:\n" . $response);
+			throw new \Exception("Errore: " . $status . "\nRisposta:\n" . $response);
 
 		if (array_key_exists('charset', $ipn_data) and ($charset = $ipn_data['charset']) and $charset !== 'utf-8') {
 			// Convert all the values
-			foreach ($ipn_data as $key => &$value) {
+			foreach ($ipn_data as $key => &$value)
 				$value = mb_convert_encoding($value, 'utf-8', $charset);
-			}
 
 			// And store the charset values for future reference
 			$ipn_data['charset'] = 'utf-8';
@@ -222,38 +186,14 @@ class Paypal extends Module
 		$response = $ipn_data;
 
 		if ($response['payment_status'] !== 'Completed')
-			$this->log("Pagamento non completato.");
+			throw new \Exception("Pagamento non completato.");
 
-		$checker = $this->getChecker();
-		switch ($checker->verifyOrder($response['item_number'], $response['mc_gross'])) {
-			case 1:
-				return $checker->execute($response, 'ipn');
-				break;
-			case 2:
-				return $checker->alreadyExecuted($response, 'ipn');
-				break;
-		}
-	}
-
-	/**
-	 * @return PaypalCheck
-	 */
-	private function getChecker(): PaypalCheck
-	{
-		require_once(INCLUDE_PATH . 'app/config/Paypal/PaypalCheck.php');
-		$checker = new PaypalCheck($this->model);
-		return $checker;
-	}
-
-	/**
-	 * @param array $request
-	 * @param string $rule
-	 * @return array|null
-	 */
-	public function getController(array $request, string $rule): ?array
-	{
-		return $rule === 'paypal' ? [
-			'controller' => 'Paypal',
-		] : null;
+		return [
+			'id' => $response['item_number'],
+			'price' => $response['mc_gross'],
+			'meta' => [
+				'type' => 'ipn',
+			],
+		];
 	}
 }
