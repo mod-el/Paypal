@@ -6,7 +6,7 @@ use Model\Payments\PaymentsOrderInterface;
 
 class Paypal extends Module implements PaymentInterface
 {
-	public function beginPayment(PaymentsOrderInterface $order, array $options = [])
+	public function beginPayment(PaymentsOrderInterface $order, string $type, array $options = [])
 	{
 		$config = $this->retrieveConfig();
 
@@ -48,7 +48,7 @@ class Paypal extends Module implements PaymentInterface
 
 	public function handleRequest(): array
 	{
-		switch ($this->model->getRequest(2)) {
+		switch ($this->model->getRequest(3)) {
 			case 'return':
 				if (!isset($_GET['tx']))
 					throw new \Exception('Wrong parameters');
