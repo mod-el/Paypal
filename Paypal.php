@@ -31,19 +31,26 @@ class Paypal extends Module implements PaymentInterface
 			'no_note' => 1,
 		], $options);
 
-		echo '<form action="' . $url . '" name="PayPalForm" method="post">';
-		foreach ($orderData as $k => $v) {
-			if ($v === false)
-				continue;
-			if ($k === 'amount')
-				$v = round($v, 2);
+		switch ($type) {
+			case 'client':
+				return $orderData;
+				break;
+			case 'server':
+				echo '<form action="' . $url . '" name="PayPalForm" method="post">';
+				foreach ($orderData as $k => $v) {
+					if ($v === false)
+						continue;
+					if ($k === 'amount')
+						$v = round($v, 2);
 
-			echo '<input type="hidden" name="' . $k . '" value="' . htmlentities($v, ENT_QUOTES, 'utf-8') . '" />';
+					echo '<input type="hidden" name="' . $k . '" value="' . htmlentities($v, ENT_QUOTES, 'utf-8') . '" />';
+				}
+				echo '<noscript><input type="image" src="http://www.paypal.com/it_IT/i/btn/x-click-but01.gif" name="submit" alt="Effettua i tuoi pagamenti con PayPal. &Egrave; un sistema rapido, gratuito e sicuro." /><br /><br /></noscript>';
+				echo '</form>';
+				echo '<script type="text/javascript">document.PayPalForm.submit();</script>';
+				die();
+				break;
 		}
-		echo '<noscript><input type="image" src="http://www.paypal.com/it_IT/i/btn/x-click-but01.gif" name="submit" alt="Effettua i tuoi pagamenti con PayPal. &Egrave; un sistema rapido, gratuito e sicuro." /><br /><br /></noscript>';
-		echo '</form>';
-		echo '<script type="text/javascript">document.PayPalForm.submit();</script>';
-		die();
 	}
 
 	public function handleRequest(): array
