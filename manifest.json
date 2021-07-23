@@ -4,6 +4,6 @@
 	"version": "1.0.0",
 	"dependencies": {
 		"Core": ">=2.10.0",
-		"Payments": ">=1.0.0"
+		"Payments": ">=2.0.0"
 	}
 }
