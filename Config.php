@@ -19,4 +19,9 @@ $config = [
 ';
 		});
 	}
+
+	public function getConfigData(): ?array
+	{
+		return [];
+	}
 }
