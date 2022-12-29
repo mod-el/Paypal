@@ -16,7 +16,12 @@ class Paypal extends Module implements PaymentInterface
 			$url = 'https://www.paypal.com/it/cgi-bin/webscr';
 
 		$orderShipping = $order->getShipping();
-		$orderPrice = $order->getPrice() - $orderShipping;
+		$orderPrice = $order->getPrice();
+
+		if ($orderPrice > $orderShipping)
+			$orderPrice -= $orderShipping;
+		else
+			$orderShipping = 0;
 
 		$orderData = array_merge([
 			'cmd' => '_xclick',
