@@ -52,7 +52,7 @@ class Paypal extends Module implements PaymentInterface
 				}
 				echo '<noscript><input type="image" src="http://www.paypal.com/it_IT/i/btn/x-click-but01.gif" name="submit" alt="Effettua i tuoi pagamenti con PayPal. &Egrave; un sistema rapido, gratuito e sicuro." /><br /><br /></noscript>';
 				echo '</form>';
-				echo '<script type="text/javascript">document.PayPalForm.submit();</script>';
+				echo '<script>document.PayPalForm.submit();</script>';
 				die();
 				break;
 		}
