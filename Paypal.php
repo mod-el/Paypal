@@ -109,9 +109,6 @@ class Paypal extends Module implements PaymentInterface
 		$response = curl_exec($request);
 		$status = curl_getinfo($request, CURLINFO_HTTP_CODE);
 
-		// Close connection
-		curl_close($request);
-
 		################################################
 
 		if ($status == 200 and strpos($response, 'SUCCESS') === 0) {
@@ -178,9 +175,6 @@ class Paypal extends Module implements PaymentInterface
 		// Execute request and get response and status code
 		$response = curl_exec($request);
 		$status = curl_getinfo($request, CURLINFO_HTTP_CODE);
-
-		// Close connection
-		curl_close($request);
 
 		if ($status != 200 or $response !== 'VERIFIED')
 			throw new \Exception("Errore: " . $status . "\nRisposta:\n" . $response);
